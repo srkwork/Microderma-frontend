@@ -77,12 +77,15 @@ export async function listPapers(
     if(params.offset) query.set("offset", String(params.offset));
     if(params.journal) query.set("journal", params.journal);
     if(params.year) query.set("year", String(params.year));
-    if(params.min_year) query.set("year", String(params.min_year));
+    if(params.min_year) query.set("min_year", String(params.min_year));
 
     const qs = query.toString();
     return apiGet<PaperSummary[]>(`/papers/${qs ? "?" + qs : ""}`);
 }
 
+export async function getPaper(id: number) : Promise<PaperDetail> {
+    return apiGet<PaperDetail>(`/papers/${id}`);
+}
 
 // ---------- Microbes ----------
 
@@ -99,7 +102,7 @@ export async function searchMicrobes(
     const query = new URLSearchParams();
     if(params.name) query.set("name", params.name);
     if(params.condition) query.set("condition", params.condition);
-    if(params.min_year) query.set("min year", String(params.min_year));
+    if(params.min_year) query.set("min_year", String(params.min_year));
     if(params.limit) query.set("limit", String(params.limit));
 
     const qs = query.toString();

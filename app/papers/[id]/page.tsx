@@ -5,42 +5,41 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { SiteShell } from "@/components/SiteShell";
 import { Reveal } from "@/components/Reveal";
+import { getPaper } from "@/lib/api";
 import type { PaperDetail } from "@/lib/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
-
-async function getPaper(id: number): Promise<PaperDetail> {
-  const res = await fetch(`${API_BASE}/papers/${id}`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`API ${res.status}: /papers/${id}`);
-  }
-
-  return res.json();
-}
 
 export default function PaperDetailPage() {
   const params = useParams();
-  const id = parseInt(params.id as string, 10);
+  const rawId = params?.id;
+  const id = rawId ? parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10) : NaN;
+
   const [paper, setPaper] = useState<PaperDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    console.log("[PaperDetail] params:", params, "parsed id:", id);
+
     if (isNaN(id)) {
-      setError("Invalid paper ID");
+      setError(`Invalid paper ID: got ${rawId}`);
       setLoading(false);
       return;
     }
+
+    console.log(`[PaperDetail] fetching paper ${id}`);
+
     getPaper(id)
-      .then(setPaper)
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "Could not load paper")
-      )
-      .finally(() => setLoading(false));
-  }, [id]);
+        .then((data) => {
+            console.log("[PaperDetail] got data:", data);
+            setPaper(data);
+        })
+        .catch((err) => {
+            console.error("[PaperDetail] fetch failed:", err);
+            setError(err instanceof Error ? err.message : "Could not load paper");
+        })
+        .finally(() => setLoading(false));
+  }, [id, rawId]);
 
   if (loading) {
     return (
@@ -156,9 +155,9 @@ export default function PaperDetailPage() {
             subtitle={`${paper.microbiome_data.length} taxa reported`}
           >
             <div className="space-y-2">
-              {paper.microbiome_data.map((t) => (
+              {paper.microbiome_data.map((t, i) => (
                 <div
-                  key={t.taxa_id}
+                  key={`${t.taxa_id}-${i}`}
                   className="flex flex-wrap items-baseline gap-x-3 py-2 border-b border-[var(--line)] last:border-0"
                 >
                   <span className="font-serif italic text-base">
