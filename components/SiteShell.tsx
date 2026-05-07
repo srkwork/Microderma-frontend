@@ -65,7 +65,17 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Page content */}
-      <main className="flex-1 relative z-10">{children}</main>
+      <main className="flex-1 relative z-10">
+        <div className="max-w-6xl mx-auto px-6 pt-5">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors"
+          >
+            <span aria-hidden="true">←</span> Back to home
+          </Link>
+        </div>
+        {children}
+      </main>
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-[var(--line)] mt-12 bg-[var(--cream)]">
