@@ -43,15 +43,26 @@ function WavyLine({
 }
 
 // Hook for scroll-triggered animations
+// Module-level cache: survives any remount within the same tab session.
+// Empty on server-side render and on initial client render (so no hydration mismatch),
+// then populated as animations complete.
+let homeAnimated = false;
+const playedCounts = new Set<string>();
+
 function useInView(threshold = 0.15){
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
 
   useEffect(() => {
+    if(homeAnimated){
+      setInView(true);
+      return;
+    }
     if(!ref.current) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if(entry.isIntersecting) {
+          homeAnimated = true;
           setInView(true);
           observer.disconnect();
         }
@@ -67,31 +78,44 @@ function useInView(threshold = 0.15){
 
 // Animated counter for stats
 function CountUp({end, suffix=""}: {end: number; suffix?: string}){
-  const  [count, setCount] = useState(0);
-  const {ref, inView} = useInView();
+  const countKey = `${end}:${suffix}`;
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    if(!inView) return;
+    if(playedCounts.has(countKey)){
+      setCount(end);
+      return;
+    }
+    if(!ref.current) return;
 
-    const duration = 1400;
-    const steps = 40;
-    const increment = end / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if(current > end){
-        setCount(end);
-        clearInterval(timer);
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const observer = new IntersectionObserver(([entry]) => {
+      if(!entry.isIntersecting || timer) return;
+      observer.disconnect();
+      const duration = 1400;
+      const steps = 40;
+      const increment = end / steps;
+      let current = 0;
+      timer = setInterval(() => {
+        current += increment;
+        if(current > end){
+          setCount(end);
+          playedCounts.add(countKey);
+          if(timer) clearInterval(timer);
+        }
+        else{
+          setCount(Math.floor(current));
+        }
+      }, duration/steps);
+    }, {threshold: 0.15});
+    observer.observe(ref.current);
 
-      }
-      else{
-        setCount(Math.floor(current));
-      }
-
-    }, duration/steps);
-    return () => clearInterval(timer);
-
-  }, [inView, end]);
+    return () => {
+      observer.disconnect();
+      if(timer) clearInterval(timer);
+    };
+  }, [end, countKey]);
 
   return(
     <span ref={ref} className="number-display">
