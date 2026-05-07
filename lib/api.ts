@@ -3,21 +3,59 @@ import type { PaperSummary, PaperDetail, TaxonRecord, RecommendationRequest, Rec
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 async function apiGet<T>(path: string): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
-        cache: "no-store",
-    });
-    if(!res.ok) throw new Error(`API ${res.status}: ${path}`);
-    return res.json();
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+  } catch (err) {
+    throw new Error(
+      `Could not reach the API at ${API_BASE}.`
+    );
+  }
+
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const body = await res.json();
+      detail = body.detail || JSON.stringify(body);
+    } catch {
+      // body wasn't JSON; ignore
+    }
+    throw new Error(
+      `${res.status} ${res.statusText}${detail ? ` — ${detail}` : ""}`
+    );
+  }
+
+  return res.json();
 }
 
 async function apiPost<T>(path: string, body: unknown): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
-        method: "POST",
-        headers: {"Content-Type" : "application/json"},
-        body: JSON.stringify(body),
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
-    if(!res.ok) throw new Error(`API ${res.status}: ${path}`);
-    return res.json();
+  } catch (err) {
+    throw new Error(
+      `Could not reach the API at ${API_BASE}.`
+    );
+  }
+
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const data = await res.json();
+      detail = data.detail || JSON.stringify(data);
+    } catch {
+      // body wasn't JSON; ignore
+    }
+    throw new Error(
+      `${res.status} ${res.statusText}${detail ? ` — ${detail}` : ""}`
+    );
+  }
+
+  return res.json();
 }
 
 
